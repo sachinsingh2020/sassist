@@ -172,6 +172,12 @@ export default function OrderPadClient({
         taxAmount: estimatedTax,
         totalAmount: finalTotal,
         notes: orderNotes,
+        appliedSchemes: appliedSchemes.map((s) => ({
+          schemeId: s.schemeId,
+          discountAmount: s.discountAmount,
+          freeSkuCode: s.freeItems?.[0]?.sku,
+          freeSkuQty: s.freeItems?.[0]?.freeQty,
+        })),
       };
 
       const res = await createSecondaryOrder(payload);

@@ -27,7 +27,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
   ]);
 
   const initialRetailer = retailerId
-    ? retailers.find((r) => r.id === retailerId)
+    ? retailers.find((r: any) => r.id === retailerId)
     : retailers[0];
 
   return (

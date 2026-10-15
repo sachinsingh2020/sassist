@@ -313,25 +313,58 @@ model Category {
 }
 
 model Product {
-  id               String      @id @default(uuid())
-  name             String
-  sku              String      @unique
-  barcode          String?     @unique
-  hsnCode          String?
-  categoryId       String
-  category         Category    @relation(fields: [categoryId], references: [id])
-  uom              String      @default("PCS") // Unit of measure (PCS, BOX, CASE, KG)
-  mrp              Float
-  distributorPrice Float
-  retailerPrice    Float
-  gstRate          Float       @default(18.0) // 5%, 12%, 18%, etc.
-  stockQuantity    Int         @default(100)
-  imageUrl         String?
-  isActive         Boolean     @default(true)
-  customFields     Json?       @default("{}")
-  orderItems       OrderItem[]
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id                 String                @id @default(uuid())
+  name               String
+  sku                String                @unique
+  barcode            String?               @unique
+  hsnCode            String?
+  categoryId         String
+  category           Category              @relation(fields: [categoryId], references: [id])
+  subcategory        String?               // Namkeen, Sweets, Beverages, Personal Care, etc.
+  brand              String?               // e.g. TastyBites, FMCG Direct
+  productType        String                @default("FINISHED_GOODS") // FINISHED_GOODS, RAW_MATERIAL, PACKAGING, PROMOTIONAL
+  uom                String                @default("PCS") // Unit of measure (PCS, BOX, CASE, KG, LTR, PACK)
+  basePrice          Float?                @default(0.0)
+  mrp                Float
+  distributorPrice   Float
+  retailerPrice      Float
+  gstRate            Float                 @default(18.0) // 5%, 12%, 18%, 28%
+  stockQuantity      Int                   @default(100)
+  minOrderQty        Int                   @default(1)
+  status             String                @default("ACTIVE") // ACTIVE, INACTIVE, DISCONTINUED
+  effectiveStartDate DateTime?             @default(now())
+  effectiveEndDate   DateTime?
+  imageUrl           String?
+  isActive           Boolean               @default(true)
+  customFields       Json?                 @default("{}")
+  orderItems         OrderItem[]
+  priceHistory       ProductPriceHistory[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([categoryId])
+  @@index([brand])
+  @@index([status])
+  @@index([productType])
+}
+
+model ProductPriceHistory {
+  id                  String   @id @default(uuid())
+  productId           String
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  oldMrp              Float
+  newMrp              Float
+  oldDistributorPrice Float
+  newDistributorPrice Float
+  oldRetailerPrice    Float
+  newRetailerPrice    Float
+  effectiveDate       DateTime @default(now())
+  reason              String?
+  changedBy           String   @default("System Admin")
+  createdAt           DateTime @default(now())
+
+  @@index([productId])
+  @@index([effectiveDate])
 }
 
 model Visit {
@@ -391,21 +424,51 @@ model OrderItem {
 }
 
 model Scheme {
-  id              String   @id @default(uuid())
-  title           String
-  code            String   @unique
-  description     String?
-  type            String   // PERCENTAGE_DISCOUNT, FLAT_DISCOUNT, BOGO
-  minOrderQty     Int      @default(1)
-  discountPercent Float?   @default(0.0)
-  flatDiscount    Float?   @default(0.0)
-  freeSkuCode     String?
-  freeSkuQty      Int?     @default(0)
-  startDate       DateTime
-  endDate         DateTime
-  isActive        Boolean  @default(true)
-  customFields    Json?    @default("{}")
-  createdAt       DateTime @default(now())
+  id                      String                 @id @default(uuid())
+  title                   String
+  code                    String                 @unique
+  description             String?
+  type                    String                 // PERCENTAGE_DISCOUNT, FLAT_DISCOUNT, BOGO, TIERED_SLAB
+  eligibleClientTypesJson String?                @default("[\"ALL\"]") // ["ALL"] or ["LEAD", "PROSPECT", "CUSTOMER"]
+  eligibleProductIdsJson  String?                @default("[\"ALL\"]") // ["ALL"] or ["prod-id-1", "prod-id-2"]
+  minOrderQty             Int                    @default(1)
+  minOrderValue           Float?                 @default(0.0)
+  discountPercent         Float?                 @default(0.0)
+  flatDiscount            Float?                 @default(0.0)
+  freeSkuCode             String?
+  freeSkuQty              Int?                   @default(0)
+  slabTiersJson           String?                // e.g. [{"minQty": 10, "discountPercent": 5}, {"minQty": 50, "discountPercent": 10}]
+  maxDiscountCap          Float?
+  startDate               DateTime
+  endDate                 DateTime
+  status                  String                 @default("ACTIVE") // ACTIVE, INACTIVE, EXPIRED
+  approvalStatus          String                 @default("APPROVED") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
+  isActive                Boolean                @default(true)
+  customFields            Json?                  @default("{}")
+  applicationLogs         SchemeApplicationLog[]
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @default(now()) @updatedAt
+
+  @@index([status])
+  @@index([approvalStatus])
+  @@index([startDate, endDate])
+}
+
+model SchemeApplicationLog {
+  id             String   @id @default(uuid())
+  schemeId       String
+  scheme         Scheme   @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  orderId        String?
+  clientId       String?
+  orderNumber    String?
+  discountAmount Float    @default(0.0)
+  freeSkuCode    String?
+  freeSkuQty     Int?     @default(0)
+  orderSubtotal  Float    @default(0.0)
+  appliedAt      DateTime @default(now())
+
+  @@index([schemeId])
+  @@index([appliedAt])
 }
 
 model Lead {

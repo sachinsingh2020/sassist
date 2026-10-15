@@ -2,7 +2,77 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { ModuleName } from "@prisma/client";
+import * as productActions from "./products";
+import * as schemeActions from "./schemes";
 
+// Delegated Product Actions
+export async function getProducts(filters?: any) {
+  return await productActions.getProducts(filters);
+}
+
+export async function getProductById(id: string) {
+  return await productActions.getProductById(id);
+}
+
+export async function getCategories() {
+  return await productActions.getCategories();
+}
+
+export async function createProduct(input: any) {
+  return await productActions.createProduct(input);
+}
+
+export async function updateProduct(input: any) {
+  return await productActions.updateProduct(input);
+}
+
+export async function deleteProduct(id: string) {
+  return await productActions.deleteProduct(id);
+}
+
+export async function bulkUpdatePrices(input: any) {
+  return await productActions.bulkUpdatePrices(input);
+}
+
+export async function bulkImportProducts(records: any[]) {
+  return await productActions.bulkImportProducts(records);
+}
+
+// Delegated Scheme Actions
+export async function getSchemes(filters?: any) {
+  return await schemeActions.getSchemes(filters);
+}
+
+export async function getSchemeById(id: string) {
+  return await schemeActions.getSchemeById(id);
+}
+
+export async function createScheme(input: any) {
+  return await schemeActions.createScheme(input);
+}
+
+export async function updateScheme(input: any) {
+  return await schemeActions.updateScheme(input);
+}
+
+export async function updateSchemeApproval(id: string, status: string, reason?: string) {
+  return await schemeActions.updateSchemeApproval(id, status, reason);
+}
+
+export async function deleteScheme(id: string) {
+  return await schemeActions.deleteScheme(id);
+}
+
+export async function checkSchemeCollisionAction(candidate: any) {
+  return await schemeActions.checkSchemeCollisionAction(candidate);
+}
+
+export async function bulkImportSchemes(records: any[]) {
+  return await schemeActions.bulkImportSchemes(records);
+}
+
+// Core Dashboard Overview
 export async function getDashboardOverview() {
   const [
     totalProducts,
@@ -56,19 +126,6 @@ export async function getDashboardOverview() {
   };
 }
 
-export async function getProducts() {
-  return await prisma.product.findMany({
-    include: { category: true },
-    orderBy: { name: "asc" },
-  });
-}
-
-export async function getCategories() {
-  return await prisma.category.findMany({
-    orderBy: { name: "asc" },
-  });
-}
-
 export async function getRetailers() {
   return await prisma.retailer.findMany({
     include: {
@@ -102,71 +159,11 @@ export async function getBeats() {
   });
 }
 
-export async function getSchemes() {
-  return await prisma.scheme.findMany({
-    orderBy: { createdAt: "desc" },
-  });
-}
-
-import { validateCustomFields, recordAuditLog } from "@/lib/customFields";
-import { ModuleName } from "@prisma/client";
-
 export async function getActiveFieldDefinitions(module: ModuleName) {
   return await prisma.fieldDefinition.findMany({
     where: { module, isActive: true },
     orderBy: { sortOrder: "asc" },
   });
-}
-
-export async function createProduct(formData: {
-  name: string;
-  sku: string;
-  barcode?: string;
-  categoryId: string;
-  uom: string;
-  mrp: number;
-  distributorPrice: number;
-  retailerPrice: number;
-  gstRate: number;
-  stockQuantity: number;
-  customFields?: Record<string, any>;
-}) {
-  let customFieldsData: any = formData.customFields || {};
-  if (formData.customFields && Object.keys(formData.customFields).length > 0) {
-    const validation = await validateCustomFields("PRODUCT", formData.customFields);
-    if (!validation.isValid) {
-      throw new Error(validation.errors.map((e) => e.message).join(", "));
-    }
-    customFieldsData = validation.sanitizedValues;
-  }
-
-  const product = await prisma.product.create({
-    data: {
-      name: formData.name,
-      sku: formData.sku,
-      barcode: formData.barcode || null,
-      categoryId: formData.categoryId,
-      uom: formData.uom,
-      mrp: Number(formData.mrp),
-      distributorPrice: Number(formData.distributorPrice),
-      retailerPrice: Number(formData.retailerPrice),
-      gstRate: Number(formData.gstRate),
-      stockQuantity: Number(formData.stockQuantity),
-      customFields: customFieldsData,
-    },
-  });
-
-  await recordAuditLog({
-    entityType: "PRODUCT",
-    entityId: product.id,
-    action: "CREATE",
-    newValues: product,
-    reason: `Product '${product.name}' (${product.sku}) created`,
-  });
-
-  revalidatePath("/");
-  revalidatePath("/products");
-  return { success: true, product };
 }
 
 export async function createRetailer(formData: {
@@ -197,40 +194,4 @@ export async function createRetailer(formData: {
   revalidatePath("/");
   revalidatePath("/retailers");
   return { success: true, retailer };
-}
-
-export async function createScheme(formData: {
-  title: string;
-  code: string;
-  description?: string;
-  type: string;
-  minOrderQty: number;
-  discountPercent?: number;
-  flatDiscount?: number;
-  freeSkuCode?: string;
-  freeSkuQty?: number;
-  startDate: string;
-  endDate: string;
-}) {
-  const scheme = await prisma.scheme.create({
-    data: {
-      title: formData.title,
-      code: formData.code,
-      description: formData.description || null,
-      type: formData.type,
-      minOrderQty: Number(formData.minOrderQty),
-      discountPercent: formData.discountPercent ? Number(formData.discountPercent) : 0.0,
-      flatDiscount: formData.flatDiscount ? Number(formData.flatDiscount) : 0.0,
-      freeSkuCode: formData.freeSkuCode || null,
-      freeSkuQty: formData.freeSkuQty ? Number(formData.freeSkuQty) : 0,
-      startDate: new Date(formData.startDate),
-      endDate: new Date(formData.endDate),
-      isActive: true,
-    },
-  });
-
-  revalidatePath("/");
-  revalidatePath("/schemes");
-  revalidatePath("/orders/new");
-  return { success: true, scheme };
 }

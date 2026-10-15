@@ -22,6 +22,12 @@ export async function createSecondaryOrder(data: {
   taxAmount?: number;
   totalAmount: number;
   notes?: string;
+  appliedSchemes?: Array<{
+    schemeId: string;
+    discountAmount: number;
+    freeSkuCode?: string;
+    freeSkuQty?: number;
+  }>;
 }) {
   // Generate a professional sequential Order Number (e.g. ORD-20251013-4821)
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -73,6 +79,24 @@ export async function createSecondaryOrder(data: {
           notes: `Order booked: ${orderNumber} (₹${data.totalAmount.toFixed(2)})`,
         },
       });
+    }
+
+    // 3. Log Scheme Application History
+    if (data.appliedSchemes && data.appliedSchemes.length > 0) {
+      for (const as of data.appliedSchemes) {
+        await tx.schemeApplicationLog.create({
+          data: {
+            schemeId: as.schemeId,
+            orderId: order.id,
+            clientId: data.retailerId,
+            orderNumber: order.orderNumber,
+            discountAmount: as.discountAmount || 0.0,
+            freeSkuCode: as.freeSkuCode || null,
+            freeSkuQty: as.freeSkuQty || 0,
+            orderSubtotal: data.subTotal,
+          },
+        });
+      }
     }
 
     return order;
