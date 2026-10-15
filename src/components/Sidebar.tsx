@@ -17,6 +17,7 @@ import {
   ShoppingBag,
   BarChart3,
   Sliders,
+  Building2,
   X,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ const navigationItems = [
   { name: "Mobile POS Terminal", href: "/pos", icon: ShoppingBag },
   { name: "Executive BI Analytics", href: "/analytics", icon: BarChart3 },
   { name: "GPS Visit Audit Log", href: "/visits", icon: Compass },
+  { name: "Address Master", href: "/addresses", icon: Building2 },
   { name: "Product Catalog Master", href: "/products", icon: Package },
   { name: "Retail Outlets Master", href: "/retailers", icon: Store },
   { name: "Distributor Network", href: "/distributors", icon: Truck },
