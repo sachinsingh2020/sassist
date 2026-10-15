@@ -244,6 +244,19 @@ export async function createClient(data: ClientInput) {
     reason: `Registered new ${client.clientType}: ${client.businessName} (${client.clientCode})`,
   });
 
+  // 7. Evaluate Automation Rules
+  try {
+    const { evaluateAutomationRules } = await import("@/lib/automationEngine");
+    await evaluateAutomationRules({
+      module: "CLIENT",
+      triggerType: "RECORD_CREATED",
+      entityId: client.id,
+      entityData: client,
+    });
+  } catch (err) {
+    console.error("Client automation trigger error:", err);
+  }
+
   revalidatePath("/leads");
   return { success: true, client };
 }

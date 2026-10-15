@@ -102,10 +102,24 @@ export async function createSecondaryOrder(data: {
     return order;
   });
 
+  // Evaluate Automation Rules (e.g. Auto-convert Prospect to Customer on first order)
+  try {
+    const { evaluateAutomationRules } = await import("@/lib/automationEngine");
+    await evaluateAutomationRules({
+      module: "ORDER",
+      triggerType: "RECORD_CREATED",
+      entityId: result.id,
+      entityData: result,
+    });
+  } catch (autoErr) {
+    console.error("Order automation trigger error:", autoErr);
+  }
+
   revalidatePath("/");
   revalidatePath("/field");
   revalidatePath("/orders");
   revalidatePath("/visits");
+  revalidatePath("/clients");
 
   return { success: true, order: result };
 }

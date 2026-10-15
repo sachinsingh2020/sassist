@@ -21,6 +21,7 @@ import {
   UserCheck,
   Target,
   ShieldAlert,
+  Zap,
   X,
 } from "lucide-react";
 
@@ -42,6 +43,7 @@ const navigationItems = [
   { name: "Trade Schemes & Discounts", href: "/schemes", icon: Tag },
   { name: "Target Master & Goals", href: "/targets", icon: Target },
   { name: "SLA Escalation Engine", href: "/sla", icon: ShieldAlert },
+  { name: "Automation Rules Master", href: "/automation", icon: Zap },
   { name: "Dynamic Field Builder", href: "/admin/custom-fields", icon: Sliders },
 ];
 

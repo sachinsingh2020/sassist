@@ -72,6 +72,7 @@ enum ModuleName {
   TARGET
   SLA
   ORDER
+  AUTOMATION
 }
 
 model User {
@@ -683,5 +684,62 @@ model SlaExecutionLog {
   @@index([entityType, entityId])
   @@index([status])
   @@index([isResolutionBreached])
+}
+
+model AutomationRule {
+  id               String                   @id @default(uuid())
+  ruleName         String
+  ruleCode         String                   @unique
+  description      String?
+  module           ModuleName               @default(CLIENT) // CLIENT, ORDER, PRODUCT, VISIT
+  triggerType      String                   // RECORD_CREATED, RECORD_UPDATED, FIELD_CHANGED, STATUS_CHANGED, SCHEDULED_TIME
+  triggerField     String?                  // e.g. "status", "stage", "totalAmount"
+  conditionsJson   String                   @default("[]") // [{ "field": "clientType", "operator": "EQUALS", "value": "LEAD" }]
+  actionType       String                   // CLIENT_TYPE_CONVERSION, FIELD_UPDATE, OWNERSHIP_CHANGE, NOTIFICATION, SLA_TRIGGER
+  actionConfigJson String                   @default("{}") // e.g. { "toType": "CUSTOMER", "reason": "First order booked" }
+  executionTiming  String                   @default("IMMEDIATE") // IMMEDIATE, SCHEDULED
+  effectiveDate    DateTime?                @default(now())
+  effectiveTime    String?                  @default("00:00")
+  timeZone         String?                  @default("Asia/Kolkata")
+  recurrence       String?                  @default("ONCE") // ONCE, DAILY, WEEKLY, MONTHLY
+  requiresApproval Boolean                  @default(false)
+  approvalStatus   String                   @default("APPROVED") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
+  failurePolicy    String                   @default("CONTINUE") // STOP_ON_FAILURE, CONTINUE
+  status           String                   @default("ACTIVE") // ACTIVE, INACTIVE, PAUSED
+  isActive         Boolean                  @default(true)
+  executionCount   Int                      @default(0)
+  lastExecutedAt   DateTime?
+  customFields     Json?                    @default("{}")
+  executionLogs    AutomationExecutionLog[]
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @default(now()) @updatedAt
+
+  @@index([module])
+  @@index([triggerType])
+  @@index([actionType])
+  @@index([status])
+  @@index([isActive])
+}
+
+model AutomationExecutionLog {
+  id              String         @id @default(uuid())
+  ruleId          String
+  rule            AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  entityType      String         // CLIENT, ORDER, etc.
+  entityId        String
+  entityReference String?        // e.g. "Apex Retailers", "ORD-2026-102"
+  triggerEvent    String
+  executionStatus String         // SUCCESS, FAILED, RETRIED, SKIPPED
+  actionTaken     String         // e.g. "Converted Client from LEAD to CUSTOMER"
+  beforeSnapshot  Json?
+  afterSnapshot   Json?
+  errorMessage    String?
+  retryCount      Int            @default(0)
+  executedAt      DateTime       @default(now())
+
+  @@index([ruleId])
+  @@index([entityType, entityId])
+  @@index([executionStatus])
+  @@index([executedAt])
 }
 
