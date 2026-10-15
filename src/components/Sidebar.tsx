@@ -16,6 +16,7 @@ import {
   FileText,
   ShoppingBag,
   BarChart3,
+  Sliders,
   X,
 } from "lucide-react";
 
@@ -33,6 +34,7 @@ const navigationItems = [
   { name: "Beats & Route Planning", href: "/beats", icon: MapPin },
   { name: "Trade Schemes & Discounts", href: "/schemes", icon: Tag },
   { name: "Channel CRM Leads", href: "/leads", icon: Users },
+  { name: "Dynamic Field Builder", href: "/admin/custom-fields", icon: Sliders },
 ];
 
 interface SidebarProps {

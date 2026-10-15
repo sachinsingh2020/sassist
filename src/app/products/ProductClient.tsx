@@ -2,20 +2,30 @@
 
 import { useState } from "react";
 import { createProduct } from "@/actions/masters";
-import { Package, Plus, Search, Filter, CheckCircle2, AlertCircle } from "lucide-react";
+import { Package, Plus, Search, Filter, CheckCircle2, AlertCircle, Sliders } from "lucide-react";
+import DynamicFormRenderer, { FieldDefinitionDTO } from "@/components/custom-fields/DynamicFormRenderer";
+import { DynamicTableHeaders, DynamicTableRowCells } from "@/components/custom-fields/DynamicTableColumns";
+import Link from "next/link";
 
 interface ProductClientProps {
   initialProducts: any[];
   categories: any[];
+  fieldDefinitions?: FieldDefinitionDTO[];
 }
 
-export default function ProductClient({ initialProducts, categories }: ProductClientProps) {
+export default function ProductClient({
+  initialProducts,
+  categories,
+  fieldDefinitions = [],
+}: ProductClientProps) {
   const [products, setProducts] = useState(initialProducts);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [customFields, setCustomFields] = useState<Record<string, any>>({});
+  const [customFieldErrors, setCustomFieldErrors] = useState<Record<string, string>>({});
 
   // Form states
   const [name, setName] = useState("");
@@ -41,6 +51,7 @@ export default function ProductClient({ initialProducts, categories }: ProductCl
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
+    setCustomFieldErrors({});
 
     try {
       const res = await createProduct({
@@ -54,6 +65,7 @@ export default function ProductClient({ initialProducts, categories }: ProductCl
         retailerPrice: parseFloat(retailerPrice),
         gstRate: parseFloat(gstRate),
         stockQuantity: parseInt(stockQuantity),
+        customFields,
       });
 
       if (res.success && res.product) {
@@ -67,6 +79,8 @@ export default function ProductClient({ initialProducts, categories }: ProductCl
         setMrp("");
         setDistributorPrice("");
         setRetailerPrice("");
+        setCustomFields({});
+        setCustomFieldErrors({});
       }
     } catch (err: any) {
       setMessage("Error creating product: " + err.message);
@@ -85,17 +99,27 @@ export default function ProductClient({ initialProducts, categories }: ProductCl
             Product Master & Price Catalog
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Manage SKUs, category hierarchies, unit pricing (Distributor vs. Retailer Landing), and GST rates.
+            Manage SKUs, category hierarchies, unit pricing (Distributor vs. Retailer Landing), and dynamic custom attributes.
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
-        >
-          <Plus className="h-4 w-4" />
-          Add New SKU
-        </button>
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/admin/custom-fields"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 text-slate-700 transition"
+          >
+            <Sliders className="w-3.5 h-3.5 text-rose-500" />
+            Configure Custom Columns
+          </Link>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+          >
+            <Plus className="h-4 w-4" />
+            Add New SKU
+          </button>
+        </div>
       </div>
 
       {message && (
@@ -150,6 +174,7 @@ export default function ProductClient({ initialProducts, categories }: ProductCl
                 <th className="py-3 px-4 text-right">Retailer Price</th>
                 <th className="py-3 px-4 text-right">GST Rate</th>
                 <th className="py-3 px-4 text-right">Stock</th>
+                <DynamicTableHeaders fields={fieldDefinitions} />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -176,11 +201,12 @@ export default function ProductClient({ initialProducts, categories }: ProductCl
                       {p.stockQuantity}
                     </span>
                   </td>
+                  <DynamicTableRowCells fields={fieldDefinitions} customFields={p.customFields} />
                 </tr>
               ))}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400">
+                  <td colSpan={9 + fieldDefinitions.length} className="py-8 text-center text-slate-400">
                     No products found matching your search.
                   </td>
                 </tr>
@@ -329,6 +355,20 @@ export default function ProductClient({ initialProducts, categories }: ProductCl
                   />
                 </div>
               </div>
+
+              {/* Dynamic Custom Fields Section */}
+              {fieldDefinitions.length > 0 && (
+                <div className="pt-2 border-t border-slate-100">
+                  <DynamicFormRenderer
+                    fields={fieldDefinitions}
+                    values={customFields}
+                    errors={customFieldErrors}
+                    onChange={(name, val) =>
+                      setCustomFields((prev) => ({ ...prev, [name]: val }))
+                    }
+                  />
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                 <button

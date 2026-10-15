@@ -108,6 +108,16 @@ export async function getSchemes() {
   });
 }
 
+import { validateCustomFields, recordAuditLog } from "@/lib/customFields";
+import { ModuleName } from "@prisma/client";
+
+export async function getActiveFieldDefinitions(module: ModuleName) {
+  return await prisma.fieldDefinition.findMany({
+    where: { module, isActive: true },
+    orderBy: { sortOrder: "asc" },
+  });
+}
+
 export async function createProduct(formData: {
   name: string;
   sku: string;
@@ -119,7 +129,17 @@ export async function createProduct(formData: {
   retailerPrice: number;
   gstRate: number;
   stockQuantity: number;
+  customFields?: Record<string, any>;
 }) {
+  let customFieldsData: any = formData.customFields || {};
+  if (formData.customFields && Object.keys(formData.customFields).length > 0) {
+    const validation = await validateCustomFields("PRODUCT", formData.customFields);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.map((e) => e.message).join(", "));
+    }
+    customFieldsData = validation.sanitizedValues;
+  }
+
   const product = await prisma.product.create({
     data: {
       name: formData.name,
@@ -132,7 +152,16 @@ export async function createProduct(formData: {
       retailerPrice: Number(formData.retailerPrice),
       gstRate: Number(formData.gstRate),
       stockQuantity: Number(formData.stockQuantity),
+      customFields: customFieldsData,
     },
+  });
+
+  await recordAuditLog({
+    entityType: "PRODUCT",
+    entityId: product.id,
+    action: "CREATE",
+    newValues: product,
+    reason: `Product '${product.name}' (${product.sku}) created`,
   });
 
   revalidatePath("/");

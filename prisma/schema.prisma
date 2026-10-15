@@ -49,6 +49,31 @@ enum LeadStage {
   LOST
 }
 
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  CURRENCY
+  CHECKBOX
+  SELECT
+  DEPENDENT_SELECT
+  LOOKUP
+  EMAIL
+  PHONE
+  GEOLOCATION
+}
+
+enum ModuleName {
+  ADDRESS
+  CLIENT
+  EMPLOYEE
+  PRODUCT
+  SCHEME
+  TARGET
+  SLA
+  ORDER
+}
+
 model User {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -57,6 +82,7 @@ model User {
   phone        String?
   role         Role      @default(SALES_REP)
   isActive     Boolean   @default(true)
+  customFields Json?     @default("{}")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -125,6 +151,7 @@ model Retailer {
   beat          Beat         @relation(fields: [beatId], references: [id])
   distributorId String
   distributor   Distributor  @relation(fields: [distributorId], references: [id])
+  customFields  Json?        @default("{}")
   visits        Visit[]
   orders        Order[]
   createdAt     DateTime     @default(now())
@@ -155,6 +182,7 @@ model Product {
   stockQuantity    Int         @default(100)
   imageUrl         String?
   isActive         Boolean     @default(true)
+  customFields     Json?       @default("{}")
   orderItems       OrderItem[]
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
@@ -197,6 +225,7 @@ model Order {
   status        OrderStatus   @default(SUBMITTED)
   paymentStatus PaymentStatus @default(PENDING)
   notes         String?
+  customFields  Json?         @default("{}")
   items         OrderItem[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -229,6 +258,7 @@ model Scheme {
   startDate       DateTime
   endDate         DateTime
   isActive        Boolean  @default(true)
+  customFields    Json?    @default("{}")
   createdAt       DateTime @default(now())
 }
 
@@ -244,6 +274,7 @@ model Lead {
   expectedVal  Float?    @default(0.0)
   notes        String?
   nextFollowUp DateTime?
+  customFields Json?     @default("{}")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -274,3 +305,48 @@ model PromoterLog {
   feedback      String?
   createdAt     DateTime @default(now())
 }
+
+model FieldDefinition {
+  id            String          @id @default(uuid())
+  module        ModuleName
+  name          String          // Internal programmatic key e.g. "cert_num"
+  label         String          // User-facing label e.g. "Certificate Number"
+  dataType      CustomFieldType @default(TEXT)
+  placeholder   String?
+  defaultValue  String?
+  isRequired    Boolean         @default(false)
+  isUnique      Boolean         @default(false)
+  minVal        Float?
+  maxVal        Float?
+  regexPattern  String?
+  regexErrorMsg String?
+  optionsJson   String?         // Options for dropdown/dependent dropdown as JSON string
+  dependentOnId String?         // Parent FieldDefinition id
+  lookupTarget  String?         // Target lookup master/table
+  sortOrder     Int             @default(0)
+  isActive      Boolean         @default(true)
+  showInList    Boolean         @default(true)
+  showInDetail  Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([module, name])
+  @@index([module, isActive])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityType String   // e.g. "FIELD_DEFINITION", "CLIENT", "ADDRESS", "PRODUCT"
+  entityId   String
+  action     String   // "CREATE", "UPDATE", "DELETE", "CONVERT", "DEACTIVATE"
+  actorEmail String   @default("admin@sassist.crm")
+  actorName  String   @default("System Admin")
+  oldValues  Json?
+  newValues  Json?
+  reason     String?
+  timestamp  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}
+
