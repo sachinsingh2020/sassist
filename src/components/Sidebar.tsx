@@ -19,6 +19,8 @@ import {
   Sliders,
   Building2,
   UserCheck,
+  Target,
+  ShieldAlert,
   X,
 } from "lucide-react";
 
@@ -38,6 +40,8 @@ const navigationItems = [
   { name: "Distributor Network", href: "/distributors", icon: Truck },
   { name: "Beats & Route Planning", href: "/beats", icon: MapPin },
   { name: "Trade Schemes & Discounts", href: "/schemes", icon: Tag },
+  { name: "Target Master & Goals", href: "/targets", icon: Target },
+  { name: "SLA Escalation Engine", href: "/sla", icon: ShieldAlert },
   { name: "Dynamic Field Builder", href: "/admin/custom-fields", icon: Sliders },
 ];
 

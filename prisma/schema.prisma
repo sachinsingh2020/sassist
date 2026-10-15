@@ -120,6 +120,7 @@ model Employee {
   delegationsReceived DelegatedAccess[] @relation("DelegationsReceived")
   ownedClients        Client[]          @relation("ClientOwnership")
   clientShares        ClientShare[]
+  targets             Target[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
@@ -154,6 +155,7 @@ model Territory {
   city         String
   distributors Distributor[]
   beats        Beat[]
+  targets      Target[]
   createdAt    DateTime      @default(now())
 }
 
@@ -339,6 +341,7 @@ model Product {
   customFields       Json?                 @default("{}")
   orderItems         OrderItem[]
   priceHistory       ProductPriceHistory[]
+  targets            Target[]
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
 
@@ -557,5 +560,128 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([timestamp])
+}
+
+model Target {
+  id              String       @id @default(uuid())
+  title           String
+  targetCode      String       @unique
+  description     String?
+  targetPeriod    String       // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
+  targetMetric    String       // SALES_VALUE, SALES_VOLUME, VISITS_COUNT, NEW_CLIENTS
+  dimension       String       @default("EMPLOYEE") // EMPLOYEE, TERRITORY, PRODUCT, TEAM
+
+  // Relations
+  employeeId      String?
+  employee        Employee?    @relation(fields: [employeeId], references: [id])
+  territoryId     String?
+  territory       Territory?   @relation(fields: [territoryId], references: [id])
+  productId       String?
+  product         Product?     @relation(fields: [productId], references: [id])
+  teamName        String?
+
+  targetQuantity  Float?       @default(0.0)
+  targetValue     Float?       @default(0.0) // ₹ value
+  actualQuantity  Float?       @default(0.0)
+  actualValue     Float?       @default(0.0) // calculated from sales / orders / visits
+  achievementRate Float?       @default(0.0) // percentage achieved e.g. 85.5%
+
+  startDate       DateTime
+  endDate         DateTime
+  status          String       @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
+  approvalStatus  String       @default("APPROVED") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
+  approvedBy      String?
+  approvalDate    DateTime?
+
+  customFields    Json?        @default("{}")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
+
+  @@index([targetPeriod])
+  @@index([targetMetric])
+  @@index([dimension])
+  @@index([employeeId])
+  @@index([territoryId])
+  @@index([approvalStatus])
+  @@index([startDate, endDate])
+}
+
+model SlaPolicy {
+  id                     String            @id @default(uuid())
+  name                   String
+  code                   String            @unique
+  description            String?
+  module                 ModuleName        @default(CLIENT) // CLIENT, ORDER, VISIT, SLA
+  triggerEvent           String            // RECORD_CREATED, STAGE_CHANGED, STATUS_CHANGED, ORDER_SUBMITTED
+  priority               String            @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+
+  responseDeadlineMins   Int               @default(60) // in minutes
+  resolutionDeadlineMins Int               @default(1440) // in minutes (24 hours)
+
+  businessCalendar       String            @default("BUSINESS_HOURS") // 24X7, BUSINESS_HOURS
+  workHoursStart         String?           @default("09:00")
+  workHoursEnd           String?           @default("18:00")
+  workDaysJson           String?           @default("[\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\"]")
+  timeZone               String?           @default("Asia/Kolkata")
+
+  assignedRole           String?           // SALES_REP, AREA_SALES_MANAGER, SUPER_ADMIN
+
+  // Escalation Rules
+  escalationLevel1Mins   Int?              @default(30) // Reminder / Level 1 escalation
+  escalationLevel1Role   String?           @default("AREA_SALES_MANAGER")
+  escalationLevel2Mins   Int?              @default(120) // Level 2 escalation
+  escalationLevel2Role   String?           @default("SUPER_ADMIN")
+
+  // Automation conditions
+  startConditionJson     String?           @default("{\"status\": \"PENDING\"}")
+  pauseConditionJson     String?           @default("{\"status\": \"ON_HOLD\"}")
+  stopConditionJson      String?           @default("{\"status\": \"COMPLETED\"}")
+
+  isActive               Boolean           @default(true)
+  customFields           Json?             @default("{}")
+  executions             SlaExecutionLog[]
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @default(now()) @updatedAt
+
+  @@index([module])
+  @@index([triggerEvent])
+  @@index([priority])
+  @@index([isActive])
+}
+
+model SlaExecutionLog {
+  id                   String     @id @default(uuid())
+  policyId             String
+  policy               SlaPolicy  @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  entityType           String     // CLIENT, ORDER, VISIT
+  entityId             String
+  entityReference      String?    // e.g. "ORD-2026-1029", "Apex Retailers"
+
+  startTime            DateTime   @default(now())
+  responseDueAt        DateTime
+  resolutionDueAt      DateTime
+
+  respondedAt          DateTime?
+  resolvedAt           DateTime?
+
+  status               String     @default("IN_PROGRESS") // IN_PROGRESS, PAUSED, RESOLVED, BREACHED
+  isResponseBreached   Boolean    @default(false)
+  isResolutionBreached Boolean    @default(false)
+
+  currentEscalationLevel Int      @default(0) // 0: None, 1: Level 1, 2: Level 2
+  escalatedTo          String?
+  escalatedAt          DateTime?
+
+  elapsedMinutes       Int        @default(0)
+  pausedMinutes        Int        @default(0)
+
+  notes                String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @default(now()) @updatedAt
+
+  @@index([policyId])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([isResolutionBreached])
 }
 
