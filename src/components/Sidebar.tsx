@@ -22,6 +22,8 @@ import {
   Target,
   ShieldAlert,
   Zap,
+  Clock,
+  UploadCloud,
   X,
 } from "lucide-react";
 
@@ -44,6 +46,8 @@ const navigationItems = [
   { name: "Target Master & Goals", href: "/targets", icon: Target },
   { name: "SLA Escalation Engine", href: "/sla", icon: ShieldAlert },
   { name: "Automation Rules Master", href: "/automation", icon: Zap },
+  { name: "Job Scheduler", href: "/schedule", icon: Clock },
+  { name: "Universal Data Importer", href: "/imports", icon: UploadCloud },
   { name: "Dynamic Field Builder", href: "/admin/custom-fields", icon: Sliders },
 ];
 

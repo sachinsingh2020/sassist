@@ -743,3 +743,43 @@ model AutomationExecutionLog {
   @@index([executedAt])
 }
 
+model ScheduledChange {
+  id           String    @id @default(uuid())
+  title        String
+  entityType   String    // PRODUCT_PRICE, TARGET_REVISION, SCHEME_STATUS, EMPLOYEE_TRANSFER, AUTOMATION_TOGGLE
+  entityId     String
+  entityName   String?
+  changeType   String    // UPDATE_PRICE, REVISE_TARGET, TOGGLE_SCHEME, TRANSFER_MANAGER, etc.
+  scheduledFor DateTime
+  payloadJson  Json?
+  status       String    @default("PENDING") // PENDING, APPLIED, FAILED, CANCELLED
+  appliedAt    DateTime?
+  appliedBy    String?   @default("System")
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([entityType, entityId])
+}
+
+model BulkImportJob {
+  id              String      @id @default(uuid())
+  module          ModuleName
+  fileName        String
+  fileType        String      @default("CSV") // CSV, XLSX
+  totalRecords    Int         @default(0)
+  successCount    Int         @default(0)
+  failureCount    Int         @default(0)
+  status          String      @default("COMPLETED") // PROCESSING, COMPLETED, PARTIAL, FAILED
+  errorReportJson Json?       // array of { row: number, error: string, sample?: any }
+  importedBy      String?     @default("Admin")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @default(now()) @updatedAt
+
+  @@index([module])
+  @@index([status])
+  @@index([createdAt])
+}
+

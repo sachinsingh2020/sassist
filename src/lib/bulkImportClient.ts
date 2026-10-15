@@ -417,3 +417,339 @@ export function exportRecordsToCsv(filename: string, rows: Record<string, any>[]
   document.body.removeChild(link);
 }
 
+/**
+ * Standard Client / Lead target schema mapping candidates
+ */
+export const CLIENT_FIELD_SPECS = [
+  { field: "clientCode", label: "Client Code", required: false, aliases: ["client code", "code", "customer code", "lead code"] },
+  { field: "businessName", label: "Business Name", required: true, aliases: ["business name", "firm name", "shop name", "store name", "outlet name", "client name", "business"] },
+  { field: "contactName", label: "Contact Person", required: true, aliases: ["contact name", "contact person", "owner name", "proprietor", "contact"] },
+  { field: "phone", label: "Primary Phone", required: true, aliases: ["phone", "mobile", "contact number", "cell", "telephone"] },
+  { field: "email", label: "Email Address", required: false, aliases: ["email", "email address", "mail"] },
+  { field: "clientType", label: "Client Type", required: false, aliases: ["client type", "type", "lead type", "account type"] },
+  { field: "stage", label: "Pipeline Stage", required: false, aliases: ["stage", "lead stage", "status"] },
+  { field: "creditLimit", label: "Credit Limit (₹)", required: false, aliases: ["credit limit", "credit", "limit"] },
+  { field: "expectedVal", label: "Expected Value (₹)", required: false, aliases: ["expected value", "deal value", "projected value"] },
+  { field: "notes", label: "Notes / Comments", required: false, aliases: ["notes", "comments", "remarks"] },
+];
+
+export function autoMapClientHeaders(headers: string[]): Record<string, string> {
+  const mapping: Record<string, string> = {};
+  for (const spec of CLIENT_FIELD_SPECS) {
+    const matchedHeader = headers.find((h) => {
+      const cleanH = h.toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+      return spec.aliases.some((alias) => {
+        const cleanAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
+        return cleanH === cleanAlias || cleanH.includes(cleanAlias);
+      });
+    });
+    if (matchedHeader) mapping[spec.field] = matchedHeader;
+  }
+  return mapping;
+}
+
+export function runClientDryRunValidation(
+  rows: Record<string, any>[],
+  mapping: Record<string, string>
+): DryRunValidationResult {
+  const rowErrors: { row: number; field: string; message: string }[] = [];
+  const sanitizedRecords: Record<string, any>[] = [];
+  const seenPhones = new Set<string>();
+
+  rows.forEach((row, index) => {
+    const rowNum = index + 1;
+    let hasError = false;
+
+    const record: Record<string, any> = {
+      clientType: "LEAD",
+      stage: "NEW",
+      status: "ACTIVE",
+      creditLimit: 0,
+      expectedVal: 0,
+    };
+
+    for (const spec of CLIENT_FIELD_SPECS) {
+      const sourceCol = mapping[spec.field];
+      const rawVal = sourceCol ? row[sourceCol] : undefined;
+      const strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : "";
+
+      if (spec.required && !strVal) {
+        rowErrors.push({
+          row: rowNum,
+          field: spec.label,
+          message: `${spec.label} is required and was empty.`,
+        });
+        hasError = true;
+      }
+
+      if (strVal) record[spec.field] = strVal;
+    }
+
+    if (record.phone) {
+      const phoneDigits = record.phone.replace(/[^0-9]/g, "");
+      if (phoneDigits.length < 10) {
+        rowErrors.push({ row: rowNum, field: "Phone", message: `Phone must have at least 10 digits.` });
+        hasError = true;
+      }
+      if (seenPhones.has(phoneDigits)) {
+        rowErrors.push({ row: rowNum, field: "Phone", message: `Duplicate phone '${record.phone}' in file.` });
+        hasError = true;
+      } else {
+        seenPhones.add(phoneDigits);
+      }
+    }
+
+    if (!hasError) sanitizedRecords.push(record);
+  });
+
+  return {
+    totalRows: rows.length,
+    validCount: sanitizedRecords.length,
+    errorCount: rows.length - sanitizedRecords.length,
+    previewRows: rows.slice(0, 5),
+    rowErrors,
+    sanitizedRecords,
+  };
+}
+
+/**
+ * Standard Employee target schema mapping candidates
+ */
+export const EMPLOYEE_FIELD_SPECS = [
+  { field: "empCode", label: "Employee Code", required: true, aliases: ["employee code", "emp code", "employee id", "code", "staff id"] },
+  { field: "name", label: "Full Name", required: true, aliases: ["name", "employee name", "full name", "staff name"] },
+  { field: "email", label: "Email Address", required: true, aliases: ["email", "official email", "email address"] },
+  { field: "phone", label: "Phone Number", required: true, aliases: ["phone", "mobile", "contact", "cell"] },
+  { field: "designation", label: "Designation", required: true, aliases: ["designation", "role", "title", "position"] },
+  { field: "department", label: "Department", required: false, aliases: ["department", "dept", "function"] },
+  { field: "status", label: "Status", required: false, aliases: ["status", "active", "state"] },
+  { field: "territoryName", label: "Territory / Region", required: false, aliases: ["territory", "territory name", "region", "area"] },
+];
+
+export function autoMapEmployeeHeaders(headers: string[]): Record<string, string> {
+  const mapping: Record<string, string> = {};
+  for (const spec of EMPLOYEE_FIELD_SPECS) {
+    const matchedHeader = headers.find((h) => {
+      const cleanH = h.toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+      return spec.aliases.some((alias) => {
+        const cleanAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
+        return cleanH === cleanAlias || cleanH.includes(cleanAlias);
+      });
+    });
+    if (matchedHeader) mapping[spec.field] = matchedHeader;
+  }
+  return mapping;
+}
+
+export function runEmployeeDryRunValidation(
+  rows: Record<string, any>[],
+  mapping: Record<string, string>
+): DryRunValidationResult {
+  const rowErrors: { row: number; field: string; message: string }[] = [];
+  const sanitizedRecords: Record<string, any>[] = [];
+  const seenEmpCodes = new Set<string>();
+
+  rows.forEach((row, index) => {
+    const rowNum = index + 1;
+    let hasError = false;
+
+    const record: Record<string, any> = {
+      department: "Field Sales",
+      status: "ACTIVE",
+      designation: "Sales Representative",
+    };
+
+    for (const spec of EMPLOYEE_FIELD_SPECS) {
+      const sourceCol = mapping[spec.field];
+      const rawVal = sourceCol ? row[sourceCol] : undefined;
+      const strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : "";
+
+      if (spec.required && !strVal) {
+        rowErrors.push({
+          row: rowNum,
+          field: spec.label,
+          message: `${spec.label} is mandatory and was empty.`,
+        });
+        hasError = true;
+      }
+
+      if (strVal) record[spec.field] = strVal;
+    }
+
+    if (record.empCode) {
+      const cleanCode = record.empCode.toUpperCase();
+      if (seenEmpCodes.has(cleanCode)) {
+        rowErrors.push({ row: rowNum, field: "Employee Code", message: `Duplicate employee code '${record.empCode}' in file.` });
+        hasError = true;
+      } else {
+        seenEmpCodes.add(cleanCode);
+      }
+    }
+
+    if (!hasError) sanitizedRecords.push(record);
+  });
+
+  return {
+    totalRows: rows.length,
+    validCount: sanitizedRecords.length,
+    errorCount: rows.length - sanitizedRecords.length,
+    previewRows: rows.slice(0, 5),
+    rowErrors,
+    sanitizedRecords,
+  };
+}
+
+/**
+ * Standard Target target schema mapping candidates
+ */
+export const TARGET_FIELD_SPECS = [
+  { field: "targetCode", label: "Target Code", required: true, aliases: ["target code", "code", "quota id", "target id"] },
+  { field: "title", label: "Target Title", required: true, aliases: ["title", "target title", "target name", "name"] },
+  { field: "targetPeriod", label: "Period", required: false, aliases: ["period", "target period", "frequency"] },
+  { field: "targetMetric", label: "Metric", required: false, aliases: ["metric", "target metric", "measure"] },
+  { field: "dimension", label: "Dimension", required: false, aliases: ["dimension", "scope", "target type"] },
+  { field: "targetValue", label: "Target Value (₹)", required: true, aliases: ["target value", "target amount", "quota", "value"] },
+  { field: "targetQuantity", label: "Target Quantity", required: false, aliases: ["target quantity", "target qty", "units", "quantity"] },
+  { field: "startDate", label: "Start Date", required: false, aliases: ["start date", "from date", "valid from"] },
+  { field: "endDate", label: "End Date", required: false, aliases: ["end date", "to date", "valid to"] },
+];
+
+export function autoMapTargetHeaders(headers: string[]): Record<string, string> {
+  const mapping: Record<string, string> = {};
+  for (const spec of TARGET_FIELD_SPECS) {
+    const matchedHeader = headers.find((h) => {
+      const cleanH = h.toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+      return spec.aliases.some((alias) => {
+        const cleanAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
+        return cleanH === cleanAlias || cleanH.includes(cleanAlias);
+      });
+    });
+    if (matchedHeader) mapping[spec.field] = matchedHeader;
+  }
+  return mapping;
+}
+
+export function runTargetDryRunValidation(
+  rows: Record<string, any>[],
+  mapping: Record<string, string>
+): DryRunValidationResult {
+  const rowErrors: { row: number; field: string; message: string }[] = [];
+  const sanitizedRecords: Record<string, any>[] = [];
+  const seenCodes = new Set<string>();
+
+  rows.forEach((row, index) => {
+    const rowNum = index + 1;
+    let hasError = false;
+
+    const record: Record<string, any> = {
+      targetPeriod: "MONTHLY",
+      targetMetric: "SALES_VALUE",
+      dimension: "EMPLOYEE",
+      targetQuantity: 0,
+      startDate: new Date().toISOString().slice(0, 10),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    };
+
+    for (const spec of TARGET_FIELD_SPECS) {
+      const sourceCol = mapping[spec.field];
+      const rawVal = sourceCol ? row[sourceCol] : undefined;
+      const strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : "";
+
+      if (spec.required && !strVal) {
+        rowErrors.push({
+          row: rowNum,
+          field: spec.label,
+          message: `${spec.label} is mandatory and was empty.`,
+        });
+        hasError = true;
+      }
+
+      if (strVal) record[spec.field] = strVal;
+    }
+
+    if (record.targetCode) {
+      const clean = record.targetCode.toUpperCase();
+      if (seenCodes.has(clean)) {
+        rowErrors.push({ row: rowNum, field: "Target Code", message: `Duplicate target code '${record.targetCode}' in file.` });
+        hasError = true;
+      } else {
+        seenCodes.add(clean);
+      }
+    }
+
+    if (!hasError) sanitizedRecords.push(record);
+  });
+
+  return {
+    totalRows: rows.length,
+    validCount: sanitizedRecords.length,
+    errorCount: rows.length - sanitizedRecords.length,
+    previewRows: rows.slice(0, 5),
+    rowErrors,
+    sanitizedRecords,
+  };
+}
+
+/**
+ * Universal Sample Template Generator for all CRM Modules
+ */
+export function downloadSampleTemplate(module: string) {
+  let sampleData: Record<string, any>[] = [];
+  let filename = `${module.toLowerCase()}_sample_template.csv`;
+
+  switch (module.toUpperCase()) {
+    case "PRODUCT":
+      sampleData = [
+        { sku: "BEV-001", name: "Premium Mango Juice 1L", category: "Beverages", subcategory: "Juices", brand: "SunSplash", mrp: 120, basePrice: 85, distributorPrice: 92, retailerPrice: 104, stockQuantity: 250, minOrderQty: 6 },
+        { sku: "SNK-002", name: "Spicy Potato Chips 85g", category: "Snacks", subcategory: "Wafers", brand: "Crunchies", mrp: 40, basePrice: 28, distributorPrice: 30, retailerPrice: 34, stockQuantity: 500, minOrderQty: 12 },
+        { sku: "CON-003", name: "Dark Chocolate Truffle Bar 50g", category: "Confectionery", subcategory: "Chocolates", brand: "Velvet", mrp: 65, basePrice: 42, distributorPrice: 46, retailerPrice: 52, stockQuantity: 180, minOrderQty: 10 },
+      ];
+      break;
+
+    case "ADDRESS":
+      sampleData = [
+        { addressLine1: "Shop 14, Galaxy Arcade", addressLine2: "MG Road, Bandra West", city: "Mumbai", state: "Maharashtra", pincode: "400050", country: "India", territory: "West Mumbai", townLocality: "Bandra", district: "Mumbai Suburban", zone: "West" },
+        { addressLine1: "Plot 88, Industrial Phase II", addressLine2: "Near Metro Depot", city: "Bengaluru", state: "Karnataka", pincode: "560058", country: "India", territory: "Peenya", townLocality: "Peenya Industrial Area", district: "Bengaluru Urban", zone: "South" },
+        { addressLine1: "42 Connaught Circus", addressLine2: "Block B, Middle Circle", city: "New Delhi", state: "Delhi", pincode: "110001", country: "India", territory: "Central Delhi", townLocality: "Connaught Place", district: "New Delhi", zone: "North" },
+      ];
+      break;
+
+    case "CLIENT":
+      sampleData = [
+        { clientCode: "CLI-1001", businessName: "Om Sai Supermarket", contactName: "Rajesh Sharma", phone: "9820011223", email: "omsai.store@gmail.com", clientType: "CUSTOMER", stage: "WON", creditLimit: 75000, expectedVal: 200000, notes: "Top tier retail partner" },
+        { clientCode: "CLI-1002", businessName: "Green Valley Mart", contactName: "Pooja Hegde", phone: "9845033445", email: "greenvalley@outlook.com", clientType: "LEAD", stage: "NEW", creditLimit: 25000, expectedVal: 50000, notes: "Interested in snacks line" },
+        { clientCode: "CLI-1003", businessName: "Metro Provision Store", contactName: "Amitabh Patel", phone: "9898055667", email: "metro.stores@yahoo.com", clientType: "PROSPECT", stage: "QUALIFIED", creditLimit: 50000, expectedVal: 120000, notes: "Awaiting sample testing" },
+      ];
+      break;
+
+    case "EMPLOYEE":
+      sampleData = [
+        { empCode: "EMP-201", name: "Kunal Mehra", email: "kunal.m@sassist.crm", phone: "9819012345", designation: "Area Sales Manager", department: "Field Sales", status: "ACTIVE", territoryName: "North Mumbai" },
+        { empCode: "EMP-202", name: "Sunita Roy", email: "sunita.r@sassist.crm", phone: "9821054321", designation: "Sales Representative", department: "Field Sales", status: "ACTIVE", territoryName: "South Bengaluru" },
+        { empCode: "EMP-203", name: "Vikas Joshi", email: "vikas.j@sassist.crm", phone: "9833098765", designation: "Regional Director", department: "Executive", status: "ACTIVE", territoryName: "Western Zone" },
+      ];
+      break;
+
+    case "SCHEME":
+      sampleData = [
+        { code: "FESTIVE-10", title: "Diwali Volume Discount 10%", type: "PERCENTAGE_DISCOUNT", minOrderQty: 24, minOrderValue: 5000, discountPercent: 10, flatDiscount: 0, startDate: "2026-11-01", endDate: "2026-11-30" },
+        { code: "LAUNCH-500", title: "New Outlet Flat ₹500 Off", type: "FLAT_DISCOUNT", minOrderQty: 10, minOrderValue: 3000, discountPercent: 0, flatDiscount: 500, startDate: "2026-10-01", endDate: "2026-12-31" },
+        { code: "BULK-SUPER", title: "Distributor Super Bulk 15%", type: "PERCENTAGE_DISCOUNT", minOrderQty: 100, minOrderValue: 25000, discountPercent: 15, flatDiscount: 0, startDate: "2026-10-15", endDate: "2027-01-15" },
+      ];
+      break;
+
+    case "TARGET":
+      sampleData = [
+        { targetCode: "TGT-Q4-01", title: "Q4 West Mumbai Sales Target", targetPeriod: "QUARTERLY", targetMetric: "SALES_VALUE", dimension: "TERRITORY", targetValue: 1500000, targetQuantity: 10000, startDate: "2026-10-01", endDate: "2026-12-31" },
+        { targetCode: "TGT-NOV-REP", title: "November Rep Volume Target", targetPeriod: "MONTHLY", targetMetric: "SALES_VOLUME", dimension: "EMPLOYEE", targetValue: 300000, targetQuantity: 2500, startDate: "2026-11-01", endDate: "2026-11-30" },
+        { targetCode: "TGT-NEW-CLIS", title: "New Customer Onboarding Goal", targetPeriod: "MONTHLY", targetMetric: "NEW_CLIENTS", dimension: "EMPLOYEE", targetValue: 20, targetQuantity: 20, startDate: "2026-11-01", endDate: "2026-11-30" },
+      ];
+      break;
+
+    default:
+      sampleData = [{ code: "SAMPLE-01", name: "Sample Item" }];
+  }
+
+  exportRecordsToCsv(filename, sampleData);
+}
+
