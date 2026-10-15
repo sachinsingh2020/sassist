@@ -26,7 +26,7 @@ export default function Header({ onOpenMobileMenu }: HeaderProps) {
           <span className="hidden sm:inline">/</span>
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60 truncate">
             <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-            <span className="hidden sm:inline">Milestone 1:</span> Master Data
+            Enterprise CRM
           </span>
         </div>
       </div>

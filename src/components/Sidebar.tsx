@@ -137,15 +137,6 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
             </Link>
           );
         })}
-
-        <div className="pt-4 px-3 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-          Next Phase
-        </div>
-        <div className="px-3 py-2 rounded-lg bg-slate-800/40 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-          <div className="text-slate-300 font-medium">Milestone 2 Next:</div>
-          <div>• Field Rep GPS Mobile Check-in</div>
-          <div>• Secondary Order Pad</div>
-        </div>
       </div>
 
       {/* Footer Profile info */}

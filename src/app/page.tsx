@@ -85,7 +85,7 @@ export default async function DashboardPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2 sm:mb-3">
             <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
-            Milestone 1: Master Data & RBAC
+            FMCG SFA & DMS Suite
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">SAssist Field Sales & Distribution Control Center</h1>
           <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl">

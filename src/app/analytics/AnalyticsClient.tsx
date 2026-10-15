@@ -94,7 +94,7 @@ export default function AnalyticsClient({ initialData }: AnalyticsClientProps) {
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5" />
-            Milestone 8: Live BI Engine
+            Live BI Engine
           </span>
         </div>
       </div>

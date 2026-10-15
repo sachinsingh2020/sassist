@@ -107,7 +107,7 @@ export default function ImportsClient({
     {
       id: "TARGET",
       label: "Target Quotas",
-      description: "Sales Value, Volume Targets, Quarterly Milestones",
+      description: "Sales Value, Volume Targets, Quarterly Quotas",
       icon: Target,
       fieldSpecs: TARGET_FIELD_SPECS,
     },
