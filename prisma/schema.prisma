@@ -91,6 +91,57 @@ model User {
   beats        Beat[]        @relation("RepBeats")
   visits       Visit[]
   orders       Order[]       @relation("RepOrders")
+  employee     Employee?
+}
+
+model Employee {
+  id                  String            @id @default(uuid())
+  empCode             String            @unique
+  name                String
+  email               String            @unique
+  phone               String
+  designation         String            // Area Sales Manager, Sales Representative, Zonal Head, Regional Director
+  department          String            @default("Field Sales")
+  status              String            @default("ACTIVE") // ACTIVE, INACTIVE, ON_LEAVE, VACANT
+  vacantPositionTitle String?
+  vacatedAt           DateTime?
+  effectiveStartDate  DateTime          @default(now())
+  effectiveEndDate    DateTime?
+  territoryId         String?
+  territoryName       String?
+  managerId           String?
+  manager             Employee?         @relation("EmployeeHierarchy", fields: [managerId], references: [id])
+  directReports       Employee[]        @relation("EmployeeHierarchy")
+  userId              String?           @unique
+  user                User?             @relation(fields: [userId], references: [id])
+  permissions         Json?             @default("{\"canView\":true,\"canCreate\":true,\"canEdit\":true,\"canDelete\":false,\"canImport\":false,\"canExport\":true,\"canAssign\":false,\"canTransfer\":false,\"isSuperAdmin\":false}")
+  customFields        Json?             @default("{}")
+  delegationsGiven    DelegatedAccess[] @relation("DelegationsGiven")
+  delegationsReceived DelegatedAccess[] @relation("DelegationsReceived")
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([managerId])
+  @@index([status])
+  @@index([department])
+}
+
+model DelegatedAccess {
+  id             String    @id @default(uuid())
+  fromEmployeeId String
+  fromEmployee   Employee  @relation("DelegationsGiven", fields: [fromEmployeeId], references: [id], onDelete: Cascade)
+  toEmployeeId   String
+  toEmployee     Employee  @relation("DelegationsReceived", fields: [toEmployeeId], references: [id], onDelete: Cascade)
+  scope          String    @default("ALL") // ALL, OUT_OF_HIERARCHY, READ_ONLY
+  effectiveStart DateTime  @default(now())
+  effectiveEnd   DateTime
+  status         String    @default("ACTIVE") // ACTIVE, EXPIRED, REVOKED
+  reason         String?
+  createdAt      DateTime  @default(now())
+
+  @@index([fromEmployeeId])
+  @@index([toEmployeeId])
+  @@index([status])
 }
 
 model Territory {
