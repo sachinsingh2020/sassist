@@ -18,6 +18,7 @@ import {
   BarChart3,
   Sliders,
   Building2,
+  UserCheck,
   X,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ const navigationItems = [
   { name: "Mobile POS Terminal", href: "/pos", icon: ShoppingBag },
   { name: "Executive BI Analytics", href: "/analytics", icon: BarChart3 },
   { name: "GPS Visit Audit Log", href: "/visits", icon: Compass },
+  { name: "Client / Lead Master", href: "/clients", icon: UserCheck },
   { name: "Address Master", href: "/addresses", icon: Building2 },
   { name: "Employee Hierarchy Master", href: "/employees", icon: Users },
   { name: "Product Catalog Master", href: "/products", icon: Package },
@@ -36,7 +38,6 @@ const navigationItems = [
   { name: "Distributor Network", href: "/distributors", icon: Truck },
   { name: "Beats & Route Planning", href: "/beats", icon: MapPin },
   { name: "Trade Schemes & Discounts", href: "/schemes", icon: Tag },
-  { name: "Channel CRM Leads", href: "/leads", icon: Users },
   { name: "Dynamic Field Builder", href: "/admin/custom-fields", icon: Sliders },
 ];
 

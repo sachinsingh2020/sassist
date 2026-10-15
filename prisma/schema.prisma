@@ -118,6 +118,8 @@ model Employee {
   customFields        Json?             @default("{}")
   delegationsGiven    DelegatedAccess[] @relation("DelegationsGiven")
   delegationsReceived DelegatedAccess[] @relation("DelegationsReceived")
+  ownedClients        Client[]          @relation("ClientOwnership")
+  clientShares        ClientShare[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
@@ -174,6 +176,7 @@ model Address {
   lng          Float?
   status       String   @default("ACTIVE") // ACTIVE, INACTIVE
   customFields Json?    @default("{}")
+  clients      Client[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -181,6 +184,71 @@ model Address {
   @@index([pincode])
   @@index([status])
 }
+
+model Client {
+  id            String              @id @default(uuid())
+  clientCode    String              @unique
+  businessName  String
+  contactName   String
+  phone         String
+  altPhone      String?
+  email         String?
+  clientType    String              @default("LEAD") // LEAD, PROSPECT, CUSTOMER
+  stage         String              @default("NEW") // NEW, CONTACTED, QUALIFIED, PROPOSAL, WON, LOST
+  status        String              @default("ACTIVE") // ACTIVE, INACTIVE, DORMANT
+  addressId     String?
+  address       Address?            @relation(fields: [addressId], references: [id])
+  ownerId       String?
+  owner         Employee?           @relation("ClientOwnership", fields: [ownerId], references: [id])
+  sharedWith    ClientShare[]
+  lat           Float?
+  lng           Float?
+  geoAccuracy   Float?
+  geoTimestamp  DateTime?
+  geoSource     String?             @default("DEVICE_GPS") // DEVICE_GPS, MANUAL_PIN, IMPORT
+  creditLimit   Float?              @default(0.0)
+  expectedVal   Float?              @default(0.0)
+  notes         String?
+  customFields  Json?               @default("{}")
+  typeHistory   ClientTypeHistory[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([clientType])
+  @@index([status])
+  @@index([phone])
+  @@index([ownerId])
+}
+
+model ClientShare {
+  id          String   @id @default(uuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  accessLevel String   @default("READ_WRITE") // READ_ONLY, READ_WRITE, FULL
+  grantedBy   String?  @default("Admin")
+  createdAt   DateTime @default(now())
+
+  @@unique([clientId, employeeId])
+  @@index([employeeId])
+}
+
+model ClientTypeHistory {
+  id                   String   @id @default(uuid())
+  clientId             String
+  client               Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fromType             String
+  toType               String
+  triggerReason        String
+  triggerTransactionId String?
+  changedBy            String   @default("System")
+  timestamp            DateTime @default(now())
+
+  @@index([clientId])
+  @@index([timestamp])
+}
+
 
 model Distributor {
   id           String     @id @default(uuid())
